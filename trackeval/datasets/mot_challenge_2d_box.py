@@ -68,14 +68,12 @@ class MotChallenge2DBox(_BaseDataset):
         self.output_sub_fol = self.config['OUTPUT_SUB_FOLDER']
 
         # Get classes to eval
-        self.valid_classes = ['pedestrian']
+        self.valid_classes = self.config['CLASSES_TO_EVAL']
         self.class_list = [cls.lower() if cls.lower() in self.valid_classes else None
                            for cls in self.config['CLASSES_TO_EVAL']]
         if not all(self.class_list):
             raise TrackEvalException('Attempted to evaluate an invalid class. Only pedestrian class is valid.')
-        self.class_name_to_class_id = {'pedestrian': 1, 'person_on_vehicle': 2, 'car': 3, 'bicycle': 4, 'motorbike': 5,
-                                       'non_mot_vehicle': 6, 'static_person': 7, 'distractor': 8, 'occluder': 9,
-                                       'occluder_on_ground': 10, 'occluder_full': 11, 'reflection': 12, 'crowd': 13}
+        self.class_name_to_class_id = {v: k+1 for k, v in enumerate(self.config['CLASSES_TO_EVAL'])}
         self.valid_class_numbers = list(self.class_name_to_class_id.values())
 
         # Get sequences to eval and check gt files exist
@@ -322,9 +320,7 @@ class MotChallenge2DBox(_BaseDataset):
         # Check that input data has unique ids
         self._check_unique_ids(raw_data)
 
-        distractor_class_names = ['person_on_vehicle', 'static_person', 'distractor', 'reflection']
-        if self.benchmark == 'MOT20':
-            distractor_class_names.append('non_mot_vehicle')
+        distractor_class_names = self.config['DISTRACTOR_CLASSES']
         distractor_classes = [self.class_name_to_class_id[x] for x in distractor_class_names]
         cls_id = self.class_name_to_class_id[cls]
 
