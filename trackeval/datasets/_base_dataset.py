@@ -245,7 +245,7 @@ class _BaseDataset(ABC):
         return ious
 
     @staticmethod
-    def _calculate_box_ious(bboxes1, bboxes2, box_format='xywh', do_ioa=False):
+    def _calculate_box_ious(bboxes1, bboxes2, box_format='xywh', metric='IoU', do_ioa=False):
         """ Calculates the IOU (intersection over union) between two arrays of boxes.
         Allows variable box formats ('xywh' and 'x0y0x1y1').
         If do_ioa (intersection over area) , then calculates the intersection over the area of boxes1 - this is commonly
@@ -266,7 +266,9 @@ class _BaseDataset(ABC):
         # layout: (x0, y0, x1, y1)
         min_ = np.minimum(bboxes1[:, np.newaxis, :], bboxes2[np.newaxis, :, :])
         max_ = np.maximum(bboxes1[:, np.newaxis, :], bboxes2[np.newaxis, :, :])
+        
         intersection = np.maximum(min_[..., 2] - max_[..., 0], 0) * np.maximum(min_[..., 3] - max_[..., 1], 0)
+
         area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (bboxes1[..., 3] - bboxes1[..., 1])
 
         if do_ioa:
@@ -275,7 +277,14 @@ class _BaseDataset(ABC):
             ioas[valid_mask, :] = intersection[valid_mask, :] / area1[valid_mask][:, np.newaxis]
 
             return ioas
-        else:
+        elif metric == 'IoM':
+            area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
+            _area1 = area1.reshape(-1, 1).repeat(area2.shape[0], axis=1)
+            _area2 = area2.reshape(1, -1).repeat(area1.shape[0], axis=0)
+            areas = np.concatenate((_area1[..., np.newaxis], _area2[..., np.newaxis]), axis=2)
+            max_area = areas.max(axis=2)
+            return intersection / max_area
+        elif metric == 'IoU':
             area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (bboxes2[..., 3] - bboxes2[..., 1])
             union = area1[:, np.newaxis] + area2[np.newaxis, :] - intersection
             intersection[area1 <= 0 + np.finfo('float').eps, :] = 0
@@ -284,6 +293,8 @@ class _BaseDataset(ABC):
             union[union <= 0 + np.finfo('float').eps] = 1
             ious = intersection / union
             return ious
+        else:
+            raise TrackEvalException("Unsupported metric: " + metric)
 
     @staticmethod
     def _calculate_euclidean_similarity(dets1, dets2, zero_distance=2.0):

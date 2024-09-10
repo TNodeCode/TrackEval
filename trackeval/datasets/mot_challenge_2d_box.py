@@ -37,6 +37,7 @@ class MotChallenge2DBox(_BaseDataset):
             'SKIP_SPLIT_FOL': False,  # If False, data is in GT_FOLDER/BENCHMARK-SPLIT_TO_EVAL/ and in
                                       # TRACKERS_FOLDER/BENCHMARK-SPLIT_TO_EVAL/tracker/
                                       # If True, then the middle 'benchmark-split' folder is skipped for both.
+            'SIMILARITY_METRIC': 'IoU', # Similarity metric (IoU, IoM)
         }
         return default_config
 
@@ -429,5 +430,5 @@ class MotChallenge2DBox(_BaseDataset):
         return data
 
     def _calculate_similarities(self, gt_dets_t, tracker_dets_t):
-        similarity_scores = self._calculate_box_ious(gt_dets_t, tracker_dets_t, box_format='xywh')
+        similarity_scores = self._calculate_box_ious(gt_dets_t, tracker_dets_t, box_format='xywh', metric=self.config["SIMILARITY_METRIC"])
         return similarity_scores
